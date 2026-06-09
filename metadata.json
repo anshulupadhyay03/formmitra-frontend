@@ -1,0 +1,6 @@
+{
+  "name": "Form Mitra",
+  "description": "An elegant, interactive single-page landing application showcasing Form Mitra, India's AI Paperwork Assistant on WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
