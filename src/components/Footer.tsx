@@ -56,11 +56,11 @@ export default function Footer({ onJoinWaitlist }: FooterProps) {
           <ul className="space-y-3.5 text-xs sm:text-sm font-sans font-bold text-on-surface">
             <li className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary shrink-0" />
-              <span className="text-on-surface-variant hover:text-primary transition-colors">help@formmitra.ai</span>
+              <span className="text-on-surface-variant hover:text-primary transition-colors">ddaansh@gmail.com</span>
             </li>
             <li className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-primary shrink-0" />
-              <span className="text-on-surface-variant hover:text-primary transition-colors">+91 99999 99999</span>
+              <span className="text-on-surface-variant hover:text-primary transition-colors">+91 6362904458</span>
             </li>
             <li className="flex items-center gap-2">
               <Info className="w-4 h-4 text-primary shrink-0" />

@@ -38,20 +38,57 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateInput()) return;
 
     setIsSubmitting(true);
-    // Simulate real persistent database submit
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      // save to localstorage for demo persistence
-      const waitlist = JSON.parse(localStorage.getItem('formmitra_waitlist') || '[]');
-      waitlist.push({ type: contactType, value: inputVal, date: new Date().toISOString() });
-      localStorage.setItem('formmitra_waitlist', JSON.stringify(waitlist));
-    }, 1200);
+    setErrorMsg('');
+
+    const emailVal = contactType === 'email' ? inputVal : '';
+    const mobileVal = contactType === 'whatsapp' ? inputVal : '';
+
+    const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_SCRIPT_URL;
+
+    if (scriptUrl) {
+      try {
+        // Google Sheets App Script macros require 'no-cors' mode standardly to secure delivery 
+        // across redirections (302/307) from the client domain in the browser iFrame.
+        // We send a JSON stringified body to match your Google Apps Script JSON.parse expectation.
+        await fetch(scriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            email: emailVal,
+            mobile: mobileVal,
+          }),
+        });
+
+        // Store locally to persist trace
+        const waitlist = JSON.parse(localStorage.getItem('formmitra_waitlist') || '[]');
+        waitlist.push({ type: contactType, value: inputVal, date: new Date().toISOString() });
+        localStorage.setItem('formmitra_waitlist', JSON.stringify(waitlist));
+
+        setIsSuccess(true);
+      } catch (err: any) {
+        console.error('Waitlist submit error:', err);
+        setErrorMsg('Something went wrong during submission. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // Offline/Demo Mode persistence feedback
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setIsSuccess(true);
+        const waitlist = JSON.parse(localStorage.getItem('formmitra_waitlist') || '[]');
+        waitlist.push({ type: contactType, value: inputVal, date: new Date().toISOString() });
+        localStorage.setItem('formmitra_waitlist', JSON.stringify(waitlist));
+      }, 1200);
+    }
   };
 
   const resetForm = () => {
