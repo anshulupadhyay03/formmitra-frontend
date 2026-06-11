@@ -8,32 +8,41 @@ interface WaitlistModalProps {
 }
 
 export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
-  const [contactType, setContactType] = useState<'email' | 'whatsapp'>('whatsapp');
-  const [inputVal, setInputVal] = useState('');
+  const [emailVal, setEmailVal] = useState('');
+  const [mobileVal, setMobileVal] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const validateInput = () => {
-    if (!inputVal.trim()) {
-      setErrorMsg('This field is required');
+    const trimmedEmail = emailVal.trim();
+    const trimmedMobile = mobileVal.trim();
+
+    if (!trimmedEmail && !trimmedMobile) {
+      setErrorMsg('Please enter either your Email Address or WhatsApp Number.');
       return false;
     }
-    if (contactType === 'email') {
+
+    if (trimmedEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(inputVal)) {
-        setErrorMsg('Please enter a valid email address');
-        return false;
-      }
-    } else {
-      const phoneRegex = /^[6-9]\d{9}$/;
-      // strip non-digits to test basic Indian 10-digit number
-      const digits = inputVal.replace(/\D/g, '');
-      if (digits.length < 10) {
-        setErrorMsg('Please enter a valid 10-digit WhatsApp number');
+      if (!emailRegex.test(trimmedEmail)) {
+        setErrorMsg('Please enter a valid email address.');
         return false;
       }
     }
+
+    if (trimmedMobile) {
+      const digits = trimmedMobile.replace(/\D/g, '');
+      if (digits.length < 10) {
+        setErrorMsg('Please enter a valid 10-digit WhatsApp number.');
+        return false;
+      }
+      if (!/^[6-9]\d{9}$/.test(digits)) {
+        setErrorMsg('Please enter a valid Indian mobile number starting with 6-9.');
+        return false;
+      }
+    }
+
     setErrorMsg('');
     return true;
   };
@@ -44,9 +53,6 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
     setIsSubmitting(true);
     setErrorMsg('');
-
-    const emailVal = contactType === 'email' ? inputVal : '';
-    const mobileVal = contactType === 'whatsapp' ? inputVal : '';
 
     const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_SCRIPT_URL;
 
@@ -62,14 +68,14 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify({
-            email: emailVal,
-            mobile: mobileVal,
+            email: emailVal.trim(),
+            mobile: mobileVal.trim(),
           }),
         });
 
         // Store locally to persist trace
         const waitlist = JSON.parse(localStorage.getItem('formmitra_waitlist') || '[]');
-        waitlist.push({ type: contactType, value: inputVal, date: new Date().toISOString() });
+        waitlist.push({ email: emailVal.trim(), mobile: mobileVal.trim(), date: new Date().toISOString() });
         localStorage.setItem('formmitra_waitlist', JSON.stringify(waitlist));
 
         setIsSuccess(true);
@@ -85,14 +91,15 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
         setIsSubmitting(false);
         setIsSuccess(true);
         const waitlist = JSON.parse(localStorage.getItem('formmitra_waitlist') || '[]');
-        waitlist.push({ type: contactType, value: inputVal, date: new Date().toISOString() });
+        waitlist.push({ email: emailVal.trim(), mobile: mobileVal.trim(), date: new Date().toISOString() });
         localStorage.setItem('formmitra_waitlist', JSON.stringify(waitlist));
       }, 1200);
     }
   };
 
   const resetForm = () => {
-    setInputVal('');
+    setEmailVal('');
+    setMobileVal('');
     setIsSuccess(false);
     setErrorMsg('');
   };
@@ -145,81 +152,58 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                     </p>
                   </div>
 
-                  {/* Contact Type Toggle */}
-                  <div className="bg-surface-container-low p-1 rounded-xl flex border border-outline-variant/20">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setContactType('whatsapp');
-                        setInputVal('');
-                        setErrorMsg('');
-                      }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-2 transition-all focus:outline-none ${
-                        contactType === 'whatsapp'
-                          ? 'bg-surface text-secondary shadow-xs warm-shadow-sm'
-                          : 'text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      WhatsApp Number
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setContactType('email');
-                        setInputVal('');
-                        setErrorMsg('');
-                      }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-sans font-bold flex items-center justify-center gap-2 transition-all focus:outline-none ${
-                        contactType === 'email'
-                          ? 'bg-surface text-secondary shadow-xs warm-shadow-sm'
-                          : 'text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      <Mail className="w-4 h-4" />
-                      Email Address
-                    </button>
-                  </div>
-
                   {/* Input Fields */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-mono font-bold text-on-surface-variant uppercase">
-                      {contactType === 'email' ? 'Primary Email' : 'WhatsApp Number (India)'}
-                    </label>
-                    <div className="relative">
-                      {contactType === 'whatsapp' ? (
-                        <div className="relative flex items-center">
-                          <span className="absolute left-4 font-mono text-sm font-bold text-on-surface-variant">+91</span>
-                          <input
-                            type="tel"
-                            maxLength={10}
-                            placeholder="Enter 10-digit number"
-                            value={inputVal}
-                            onChange={(e) => {
-                              setInputVal(e.target.value.replace(/\D/g, ''));
-                              setErrorMsg('');
-                            }}
-                            className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-14 pr-4 py-3 font-mono text-sm font-bold text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                          />
-                        </div>
-                      ) : (
-                        <div className="relative flex items-center">
-                          <Mail className="absolute left-4 w-4 h-4 text-on-surface-variant" />
-                          <input
-                            type="email"
-                            placeholder="you@example.com"
-                            value={inputVal}
-                            onChange={(e) => {
-                              setInputVal(e.target.value);
-                              setErrorMsg('');
-                            }}
-                            className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-11 pr-4 py-3 font-sans text-sm font-semibold text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                          />
-                        </div>
-                      )}
+                  <div className="space-y-4">
+                    {/* Email Block */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-mono font-bold text-on-surface-variant uppercase">
+                        Email Address
+                      </label>
+                      <div className="relative flex items-center">
+                        <Mail className="absolute left-4 w-4 h-4 text-on-surface-variant" />
+                        <input
+                          type="email"
+                          placeholder="you@example.com"
+                          value={emailVal}
+                          onChange={(e) => {
+                            setEmailVal(e.target.value);
+                            setErrorMsg('');
+                          }}
+                          className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-11 pr-4 py-3 font-sans text-sm font-semibold text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                        />
+                      </div>
                     </div>
+
+                    {/* OR Separator */}
+                    <div className="relative flex py-1 items-center">
+                      <div className="flex-grow border-t border-outline-variant/30"></div>
+                      <span className="flex-shrink mx-4 text-xs font-mono font-bold text-on-surface-variant uppercase tracking-wider">or</span>
+                      <div className="flex-grow border-t border-outline-variant/30"></div>
+                    </div>
+
+                    {/* WhatsApp Block */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-mono font-bold text-on-surface-variant uppercase">
+                        WhatsApp Number (India)
+                      </label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 font-mono text-sm font-bold text-on-surface-variant">+91</span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          placeholder="Enter 10-digit number"
+                          value={mobileVal}
+                          onChange={(e) => {
+                            setMobileVal(e.target.value.replace(/\D/g, ''));
+                            setErrorMsg('');
+                          }}
+                          className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl pl-14 pr-4 py-3 font-mono text-sm font-bold text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                        />
+                      </div>
+                    </div>
+
                     {errorMsg && (
-                      <p className="text-xs text-red-600 font-semibold">{errorMsg}</p>
+                      <p className="text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200">{errorMsg}</p>
                     )}
                   </div>
 
@@ -270,7 +254,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                       You are on the Waitlist!
                     </h3>
                     <p className="font-sans text-sm text-on-surface-variant leading-relaxed">
-                      Thank you for your interest! We have saved your invitation details ({inputVal}). We'll communicate with you as soon as Form Mitra is approved to go live.
+                      Thank you for your interest! We have saved your invitation details ({emailVal || mobileVal}). We'll communicate with you as soon as Form Mitra is approved to go live.
                     </p>
                   </div>
 
@@ -286,7 +270,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                       resetForm();
                       onClose();
                     }}
-                    className="bg-inverse-surface text-white px-8 py-3 rounded-full font-sans text-xs font-bold transition-all focus:outline-none"
+                    className="bg-inverse-surface text-black px-8 py-3 rounded-full font-sans text-xs font-bold transition-all focus:outline-none"
                   >
                     Return to Homepage
                   </button>
